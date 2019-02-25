@@ -1,15 +1,20 @@
 /**
  * Module dependencies.
  */
-
-var Tween = require('tween');
-var raf = require('raf');
+const Tween = require('component-tween');
+const raf = require('component-raf');
 
 /**
- * Expose `scrollTo`.
+ * Return scroll position.
+ *
+ * @return {Object}
+ * @api private
  */
-
-module.exports = scrollTo;
+function getScrollPosition() {
+  const y = window.pageYOffset || document.documentElement.scrollTop;
+  const x = window.pageXOffset || document.documentElement.scrollLeft;
+  return { top: y, left: x };
+}
 
 /**
  * Scroll to `(x, y)`.
@@ -18,21 +23,33 @@ module.exports = scrollTo;
  * @param {Number} y
  * @api public
  */
-
 function scrollTo(x, y, options) {
   options = options || {};
+  const { ease, duration, cancelOnUserScroll } = options
 
-  // start position
-  var start = scroll();
+  // last tracked position
+  const last = getScrollPosition();
 
   // setup tween
-  var tween = Tween(start)
-    .ease(options.ease || 'out-circ')
+  const tween = Tween(last)
+    .ease(ease || 'out-circ')
     .to({ top: y, left: x })
-    .duration(options.duration || 1000);
-
+    .duration(duration || 1000);
+  
   // scroll
   tween.update(function(o){
+    // handle scroll interruption
+    if (cancelOnUserScroll) {
+      const deltaY = Math.abs(getScrollPosition().top - last.top) || 0
+      const deltaX = Math.abs(getScrollPosition().left - last.left) || 0
+      if (Math.floor(deltaY) || Math.floor(deltaX)) {
+        animate = function(){};
+      }
+
+      last.top = o.top
+      last.left = o.left
+    }
+
     window.scrollTo(o.left | 0, o.top | 0);
   });
 
@@ -53,14 +70,6 @@ function scrollTo(x, y, options) {
 }
 
 /**
- * Return scroll position.
- *
- * @return {Object}
- * @api private
+ * Expose `scrollTo`.
  */
-
-function scroll() {
-  var y = window.pageYOffset || document.documentElement.scrollTop;
-  var x = window.pageXOffset || document.documentElement.scrollLeft;
-  return { top: y, left: x };
-}
+module.exports = scrollTo;
